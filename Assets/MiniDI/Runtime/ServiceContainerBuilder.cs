@@ -1,5 +1,4 @@
 ﻿using System;
-using UnityEngine;
 
 namespace MiniDI
 {
@@ -7,10 +6,20 @@ namespace MiniDI
     {
         private readonly ServiceContainer _container;
         private Action<IServiceResolver> _onInitialize;
+        private string _containerName = "Global Container";
 
         public ServiceContainerBuilder(ServiceContainer container)
         {
             _container = container;
+        }
+
+        /// <summary>
+        /// (Editor/Diagnostics) Assigns a custom name to this container for the Dashboard.
+        /// </summary>
+        public ServiceContainerBuilder WithName(string name)
+        {
+            _containerName = name;
+            return this;
         }
 
         /// <summary>
@@ -37,6 +46,10 @@ namespace MiniDI
         /// </summary>
         public ServiceContainer Build()
         {
+#if UNITY_EDITOR
+            // Register with diagnostics right before finalizing
+            _container.RegisterWithDiagnostics(_containerName);
+#endif
             _onInitialize?.Invoke(_container);
             return _container;
         }

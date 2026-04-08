@@ -10,21 +10,36 @@ namespace MiniDI
         object GetInstance();
     }
 
-    internal sealed class ServiceDescriptor<T> : ServiceDescriptorBase, IDisposableDescriptor where T : class
+    public interface IDiagnosticDescriptor
+    {
+        Type ServiceType { get; }
+        Type ImplementationType { get; }
+        ServiceLifetime Lifetime { get; }
+        bool IsInstantiated { get; }
+    }
+
+    internal sealed class ServiceDescriptor<T> : ServiceDescriptorBase, IDisposableDescriptor, IDiagnosticDescriptor where T : class
     {
         public Func<IServiceResolver, T> Factory { get; private set; }
         public ServiceLifetime Lifetime { get; private set; }
+
+        // Diagnostic Properties ---
+        public Type ImplementationType { get; private set; }
+        public Type ServiceType => typeof(T);
+        public bool IsInstantiated => _instance != null;
+        // ----------------------------------
 
         private T _instance;
         private bool _isResolving;
 
         public void Register(T instance, bool overwrite)
         {
-            if (!overwrite && (Factory != null || _instance != null)) return;
-
+            if (!overwrite && _instance != null) return;
+            
+            _instance = instance;
             Factory = null;
             Lifetime = ServiceLifetime.Singleton;
-            _instance = instance;
+            ImplementationType = instance.GetType(); // Track the actual type
         }
 
         public void Register(Func<IServiceResolver, T> factory, ServiceLifetime lifetime, bool overwrite)
@@ -34,6 +49,13 @@ namespace MiniDI
             Factory = factory;
             Lifetime = lifetime;
             _instance = null;
+            ImplementationType = null;
+        }
+
+        public void Register(Func<IServiceResolver, T> factory, Type implementationType, ServiceLifetime lifetime, bool overwrite)
+        {
+            Register(factory, lifetime, overwrite);
+            ImplementationType = implementationType;
         }
 
         public T Resolve(IServiceResolver resolver)
