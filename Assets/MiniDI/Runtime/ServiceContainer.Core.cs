@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace MiniDI
@@ -8,6 +10,20 @@ namespace MiniDI
         private ServiceDescriptorBase[] _services = new ServiceDescriptorBase[16];
         private readonly ServiceContainer _parent;
         private readonly ILogger _logger;
+
+        private Dictionary<Type, GenericRegistration> _openGenerics;
+
+        // EXPOSE INTERNALS FOR THE EDITOR PACKAGE TO READ
+        internal ServiceDescriptorBase[] Services => _services;
+        internal Dictionary<Type, GenericRegistration> OpenGenerics => _openGenerics;
+        internal ServiceContainer Parent => _parent;
+        internal string Name { get; set; }
+
+        internal struct GenericRegistration
+        {
+            public Type ImplementationType;
+            public ServiceLifetime Lifetime;
+        }
 
         // Static reference to the active global container
         public static ServiceContainer Global { get; private set; }
@@ -24,16 +40,14 @@ namespace MiniDI
             _parent = parent;
             _logger = parent._logger;
 
-#if UNITY_EDITOR
-            RegisterWithDiagnostics("Scoped Container");
-#endif
-
             var resolverId = ServiceSlot<IServiceResolver>.Id;
             Ensure(resolverId);
 
             var resolverDescriptor = new ServiceDescriptor<IServiceResolver>();
             resolverDescriptor.Register(this, true);
             _services[resolverId] = resolverDescriptor;
+
+            ServiceContainerEvents.NotifyCreated(this, parent);
         }
 
         /// <summary>
@@ -87,6 +101,69 @@ namespace MiniDI
             return _parent?.GetDescriptor<T>();
         }
 
+        internal IDiagnosticDescriptor GetDescriptor(Type type)
+        {
+            // Check direct registrations first (O(n) search for validation is fine)
+            foreach (var descriptor in GetAllDescriptors())
+            {
+                if (descriptor.ServiceType == type)
+                    return descriptor;
+            }
+
+            // Check if it's a closed generic that can be resolved by our Open Generics
+            if (type.IsGenericType && _openGenerics != null)
+            {
+                var def = type.GetGenericTypeDefinition();
+                if (_openGenerics.ContainsKey(def))
+                {
+                    // During validation, we can simulate the registration of the closed generic
+                    // so that the validator can "see" it.
+                    return TryCreateClosedDescriptor(type);
+                }
+            }
+
+            // Check parent containers
+            return Parent?.GetDescriptor(type);
+        }
+
+        private IDiagnosticDescriptor TryCreateClosedDescriptor(Type closedType)
+        {
+            // This logic mirrors your Resolve logic for Open Generics
+            // but returns the descriptor instead of the instance
+            var method = typeof(ServiceContainer).GetMethod("TryCreateClosedGeneric",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var genericMethod = method.MakeGenericMethod(closedType.GetGenericArguments());
+
+            // This will trigger the registration of the closed type internally
+            genericMethod.Invoke(this, null);
+
+            // Now return it
+            return GetAllDescriptors().FirstOrDefault(d => d.ServiceType == closedType);
+        }
+
+        internal IEnumerable<IDiagnosticDescriptor> GetAllDescriptors()
+        {
+            if (_services == null) yield break;
+
+            for (int i = 0; i < _services.Length; i++)
+            {
+                if (_services[i] is IDiagnosticDescriptor diagnostic)
+                {
+                    yield return diagnostic;
+                }
+            }
+        }
+
+        internal IEnumerable<Type> GetOpenGenericImplementations()
+        {
+            if (_openGenerics == null) yield break;
+
+            foreach (var genericDef in _openGenerics.Values)
+            {
+                yield return genericDef.ImplementationType;
+            }
+        }
+
         public void Dispose()
         {
             for (int i = 0; i < _services.Length; i++)
@@ -102,9 +179,7 @@ namespace MiniDI
                 _services[i] = null;
             }
 
-#if UNITY_EDITOR
-            CleanupDiagnostics();
-#endif
+            ServiceContainerEvents.NotifyDisposed(this);
         }
     }
 }

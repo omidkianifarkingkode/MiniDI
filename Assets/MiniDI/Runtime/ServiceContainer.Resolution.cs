@@ -32,6 +32,12 @@ namespace MiniDI
                 }
             }
 
+            // 3. Check if this is an Open Generic that needs to be compiled
+            if (TryCreateClosedGeneric<T>())
+            {
+                return Resolve<T>();
+            }
+
             throw new InvalidOperationException($"Service of type {typeof(T)} is not registered.");
         }
 
@@ -47,6 +53,47 @@ namespace MiniDI
                 value = default;
                 return false;
             }
+        }
+
+        // JIT Compiler for Open Generics ---
+        private bool TryCreateClosedGeneric<T>() where T : class
+        {
+            var type = typeof(T);
+            if (!type.IsGenericType)
+                return false;
+
+            var openGenericType = type.GetGenericTypeDefinition();
+
+            // Search for the open generic registration (start local, go to global)
+            GenericRegistration reg = default;
+            bool found = false;
+            ServiceContainer targetContainer = this;
+
+            while (targetContainer != null)
+            {
+                if (targetContainer._openGenerics != null && targetContainer._openGenerics.TryGetValue(openGenericType, out reg))
+                {
+                    found = true;
+                    break;
+                }
+                targetContainer = targetContainer._parent;
+            }
+
+            if (!found)
+                return false;
+
+            // Found it! Compile the closed implementation type (e.g., ListRepository<int>)
+            var closedImplementationType = reg.ImplementationType.MakeGenericType(type.GetGenericArguments());
+
+            // Register it into the container where the open generic was defined.
+            // This ensures Singletons are stored globally instead of in child scopes!
+            var methodInfo = typeof(ServiceContainer).GetMethod(nameof(RegisterClosedGeneric), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var genericMethod = methodInfo.MakeGenericMethod(type, closedImplementationType);
+
+            // Invoke the high-performance generic registration method using reflection just ONCE.
+            genericMethod.Invoke(targetContainer, new object[] { reg.Lifetime, true });
+
+            return true;
         }
     }
 }

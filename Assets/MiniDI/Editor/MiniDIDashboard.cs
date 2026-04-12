@@ -1,7 +1,7 @@
+using MiniDI.Editor.Diagnostics;
+using System;
 using UnityEditor;
 using UnityEngine;
-using MiniDI.Diagnostics;
-using System.Collections.Generic;
 
 namespace MiniDI.Editor
 {
@@ -139,13 +139,35 @@ namespace MiniDI.Editor
             var bgColor = alternate ? new Color(0.3f, 0.3f, 0.3f, 0.2f) : new Color(0f, 0f, 0f, 0f);
             EditorGUI.DrawRect(EditorGUILayout.BeginHorizontal(), bgColor);
 
-            GUILayout.Label(info.ServiceType?.Name ?? "Unknown", GUILayout.Width(180));
-            GUILayout.Label(info.ImplementationType?.Name ?? "Delegate", GUILayout.Width(180));
+            // 1. Format the names nicely for Generics
+            string serviceName = info.ServiceType.GetNiceTypeName();
+            string implName = info.ImplementationType.GetNiceTypeName();
+
+            GUILayout.Label(serviceName, GUILayout.Width(220));
+            GUILayout.Label(implName, GUILayout.Width(220));
             GUILayout.Label(info.Lifetime.ToString(), GUILayout.Width(80));
 
-            string stateText = info.Lifetime == ServiceLifetime.Transient ? "N/A" : (info.IsInstantiated ? "Created" : "Pending");
-            Color stateColor = info.IsInstantiated ? Color.green : Color.yellow;
-            if (info.Lifetime == ServiceLifetime.Transient) stateColor = Color.gray;
+            // 2. Determine State Text and Color
+            string stateText;
+            Color stateColor;
+
+            bool isOpenGeneric = info.ServiceType != null && info.ServiceType.IsGenericTypeDefinition;
+
+            if (isOpenGeneric)
+            {
+                stateText = "Definition";
+                stateColor = new Color(0.3f, 0.8f, 1f); // Cyan color for open generic definitions
+            }
+            else if (info.Lifetime == ServiceLifetime.Transient)
+            {
+                stateText = "N/A";
+                stateColor = Color.gray;
+            }
+            else
+            {
+                stateText = info.IsInstantiated ? "Created" : "Pending";
+                stateColor = info.IsInstantiated ? Color.green : Color.yellow;
+            }
 
             var prevColor = GUI.contentColor;
             GUI.contentColor = stateColor;

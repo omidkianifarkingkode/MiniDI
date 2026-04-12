@@ -11,7 +11,7 @@ namespace MiniDI.Samples
         private int _enemyCount = 0;
 
         // The spawner depends on the container resolver to pull fresh transient services
-        public EnemySpawner(IServiceResolver resolver)
+        public EnemySpawner(IServiceResolver resolver, IAudioService audioService)
         {
             _resolver = resolver;
             Debug.Log("⚔️ Enemy Spawner Created!");
