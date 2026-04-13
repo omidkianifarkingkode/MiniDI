@@ -3,7 +3,7 @@
 namespace MiniDI
 {
     [DefaultExecutionOrder(-1000)]
-    public abstract class GlobalScopedDiContainer : DiContainer // Ensure your base is named this
+    public abstract class GlobalDiContainer : DiContainer // Ensure your base is named this
     {
         protected virtual void Awake()
         {
@@ -27,7 +27,7 @@ namespace MiniDI
         }
     }
 
-    public abstract class GlobalScopedDiContainer<T> : GlobalScopedDiContainer where T : GlobalScopedDiContainer<T>
+    public abstract class GlobalDiContainer<T> : GlobalDiContainer where T : GlobalDiContainer<T>
     {
         private static T _instance;
 

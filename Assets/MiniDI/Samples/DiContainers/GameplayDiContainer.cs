@@ -1,6 +1,6 @@
 ﻿namespace MiniDI.Samples
 {
-    public class GameplayDiContainer : GameObjectScopedDiContainer<GlobalDiContainer>
+    public class GameplayDiContainer : ScopedDiContainer<GameDiContainer>
     {
         private void Awake()
         {

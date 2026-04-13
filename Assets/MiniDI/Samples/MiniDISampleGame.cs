@@ -12,7 +12,7 @@ namespace MiniDI.Samples
         {
             // Resolve one closed generic immediately so it shows up on the Dashboard on play
             Debug.Log("⚙️ Resolving IRepository<PlayerProfile> during initialization...");
-            var playerRepo = GlobalDiContainer.Instance.Resolver.Resolve<IRepository<PlayerProfile>>();
+            var playerRepo = GameDiContainer.Instance.Resolver.Resolve<IRepository<PlayerProfile>>();
             playerRepo.Save(new PlayerProfile { Name = "Hero" });
         }
 
@@ -57,7 +57,7 @@ namespace MiniDI.Samples
             if (GUILayout.Button("Resolve GameSettings Repo", GUILayout.Height(40)))
             {
                 Debug.Log("⚙️ Resolving IRepository<GameSettings> dynamically...");
-                var settingsRepo = GlobalDiContainer.Instance.Resolver.Resolve<IRepository<GameSettings>>();
+                var settingsRepo = GameDiContainer.Instance.Resolver.Resolve<IRepository<GameSettings>>();
                 settingsRepo.Save(new GameSettings { Volume = 0.75f });
             }
 

@@ -1,6 +1,6 @@
 ﻿namespace MiniDI.Samples
 {
-    public class GlobalDiContainer : GlobalScopedDiContainer<GlobalDiContainer>
+    public class GameDiContainer : GlobalDiContainer<GameDiContainer>
     {
         protected override void InstallServices(IServiceRegister services)
         {

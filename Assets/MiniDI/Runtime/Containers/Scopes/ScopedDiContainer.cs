@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MiniDI
 {
-    public abstract class GameObjectScopedDiContainer<TParent> : DiContainer where TParent : DiContainer
+    public abstract class ScopedDiContainer<TParent> : DiContainer where TParent : DiContainer
     {
         protected override ServiceContainerBuilder CreateBuilder()
         {
