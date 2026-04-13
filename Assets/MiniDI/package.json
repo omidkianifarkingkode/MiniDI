@@ -1,6 +1,6 @@
 {
   "name": "com.kingkode.mini-di",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "MiniDI",
   "description": "A blazing-fast, zero-allocation micro Dependency Injection container for Unity featuring O(1) resolution speed.",
   "unity": "2021.3",
