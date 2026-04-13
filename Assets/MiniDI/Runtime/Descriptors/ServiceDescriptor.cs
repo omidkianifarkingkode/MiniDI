@@ -1,23 +1,7 @@
 using System;
-using System.Threading;
 
 namespace MiniDI
 {
-    internal abstract class ServiceDescriptorBase { }
-
-    internal interface IDisposableDescriptor
-    {
-        object GetInstance();
-    }
-
-    public interface IDiagnosticDescriptor
-    {
-        Type ServiceType { get; }
-        Type ImplementationType { get; }
-        ServiceLifetime Lifetime { get; }
-        bool IsInstantiated { get; }
-        Type[] Dependencies { get; }
-    }
 
     internal sealed class ServiceDescriptor<T> : ServiceDescriptorBase, IDisposableDescriptor, IDiagnosticDescriptor where T : class
     {
@@ -90,17 +74,5 @@ namespace MiniDI
         }
 
         public object GetInstance() => _instance;
-    }
-
-
-    internal static class ServiceSlot<T>
-    {
-        public static readonly int Id = ServiceTypeId.Next();
-    }
-
-    internal static class ServiceTypeId
-    {
-        private static int _nextId = -1;
-        public static int Next() => Interlocked.Increment(ref _nextId);
     }
 }
