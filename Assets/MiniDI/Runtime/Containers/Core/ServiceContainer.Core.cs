@@ -83,6 +83,16 @@ namespace MiniDI
             return new ServiceContainerBuilder(childContainer).WithName(name);
         }
 
+        /// <summary>
+        /// Creates a standalone Root container builder that is NOT set as the global container.
+        /// Useful for internal module containers that need isolation.
+        /// </summary>
+        public static ServiceContainerBuilder Create(string name, ILogger logger = null)
+        {
+            var container = new ServiceContainer(logger);
+            return new ServiceContainerBuilder(container).WithName(name);
+        }
+
         private void Ensure(int id)
         {
             if (id >= _services.Length)
